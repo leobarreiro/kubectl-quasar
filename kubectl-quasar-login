@@ -1,0 +1,51 @@
+#!/usr/bin/python3
+import requests, sys, argparse, yaml, os
+
+ap = argparse.ArgumentParser()
+ap.add_argument("-u", "--username", required=True, help="Username")
+ap.add_argument("-p", "--password", required=True, help="Password")
+args = vars(ap.parse_args())
+
+oidcUser = args['username']
+oidcPassword = args['password']
+configLocation = os.getenv('HOME') + '/.kube/config'
+oidcRequestTokenUri = '/protocol/openid-connect/token'
+config = {}
+
+kubeConfig = open(configLocation, "r")
+data = yaml.load(kubeConfig, Loader=yaml.FullLoader)
+
+for user in data['users']:
+    if user['name'] == oidcUser:
+        config = user['user']['auth-provider']['config']
+        break
+
+kubeConfig.close()
+
+tokenParams = {'grant_type': 'password', 
+                'client_id': config['client-id'], 
+                'client_secret': config['client-secret'], 
+                'username': oidcUser, 
+                'password': oidcPassword, 
+                'scope': 'openid', 
+                'response_type': 'id_token'}
+response = requests.post(config['idp-issuer-url']+oidcRequestTokenUri, data=tokenParams)
+tokenDict = response.json()
+
+userCgf = {
+        'client-id': config['client-id'], 
+        'client-secret': config['client-secret'], 
+        'id-token': tokenDict['id_token'], 
+        'refresh-token': tokenDict['refresh_token'], 
+        'idp-issuer-url': config['idp-issuer-url'], 
+        'idp-certificate-authority': config['idp-certificate-authority']
+        }
+
+for user in data['users']:
+    if user['name'] == oidcUser:
+        user['user']['auth-provider']['config'] = userCgf
+        break
+
+with open(configLocation, "w") as nuevo:
+    yaml.dump(data, nuevo)
+    nuevo.close()
