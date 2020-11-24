@@ -1,0 +1,51 @@
+#!/usr/bin/python3
+import sys, argparse, yaml, os
+
+'''
+ap = argparse.ArgumentParser()
+ap.add_argument("-u", "--username", required=True, help="Username")
+ap.add_argument("-p", "--password", required=True, help="Password")
+args = vars(ap.parse_args())
+'''
+
+configLocation = os.getenv('HOME') + '/.kube/config'
+
+oidcUser = input("Username: ")
+oidcClientId = input("Client ID: ")
+oidcClientSecret = input("Client Secret: ")
+oidcIssuerUrl = input("Issuer URL: ")
+
+oldConfig = open(configLocation, "r")
+data = yaml.load(oldConfig, Loader=yaml.FullLoader)
+oldConfig.close()
+
+authConfig = {
+    "client-id": oidcClientId, 
+    "client-secret": oidcClientSecret, 
+    "id-token": "",  
+    "refresh-token": "", 
+    "idp-issuer-url": oidcIssuerUrl
+    }
+
+userFound = False
+for user in data["users"]:
+    if user["name"] == oidcUser:
+        user["user"]["auth-provider"]["config"] = authConfig
+        userFound = True
+        break
+
+if not userFound:
+    user = {
+        "name": oidcUser, 
+        "user": {
+            "auth-provider": {
+                "config": authConfig, 
+                "name": "oidc"
+                }
+            }
+        }
+    data["users"].append(user)
+
+with open(configLocation, "w") as newConfig:
+    yaml.dump(data, newConfig)
+    newConfig.close()

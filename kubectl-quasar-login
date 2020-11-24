@@ -12,15 +12,14 @@ configLocation = os.getenv('HOME') + '/.kube/config'
 oidcRequestTokenUri = '/protocol/openid-connect/token'
 config = {}
 
-kubeConfig = open(configLocation, "r")
-data = yaml.load(kubeConfig, Loader=yaml.FullLoader)
+oldConfig = open(configLocation, "r")
+data = yaml.load(oldConfig, Loader=yaml.FullLoader)
+oldConfig.close()
 
 for user in data['users']:
     if user['name'] == oidcUser:
         config = user['user']['auth-provider']['config']
         break
-
-kubeConfig.close()
 
 tokenParams = {'grant_type': 'password', 
                 'client_id': config['client-id'], 
@@ -37,8 +36,9 @@ userCgf = {
         'client-secret': config['client-secret'], 
         'id-token': tokenDict['id_token'], 
         'refresh-token': tokenDict['refresh_token'], 
-        'idp-issuer-url': config['idp-issuer-url'], 
-        'idp-certificate-authority': config['idp-certificate-authority']
+        'idp-issuer-url': config['idp-issuer-url']
+        #, 
+        #'idp-certificate-authority': config['idp-certificate-authority']
         }
 
 for user in data['users']:
@@ -46,6 +46,6 @@ for user in data['users']:
         user['user']['auth-provider']['config'] = userCgf
         break
 
-with open(configLocation, "w") as nuevo:
-    yaml.dump(data, nuevo)
-    nuevo.close()
+with open(configLocation, "w") as renewConfig:
+    yaml.dump(data, renewConfig)
+    renewConfig.close()
