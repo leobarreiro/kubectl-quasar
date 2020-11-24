@@ -23,7 +23,12 @@ You need to inform some data in order to configure the new credential (new user 
 After that, you can configure (or edit) a context to work with an existing cluster and the new user created.
 
 ```
-$ kubectl config set-context my-context-name --cluster=my-cluster --user=my-new-user
+$ kubectl config set-context my-context-name --current --cluster=my-cluster --user=my-new-user
+```
+
+Remember to set the current context to use him:
+```
+$ kubectl config use-context my-context-name
 ```
 
 ### kubectl quasar login
